@@ -1,0 +1,72 @@
+AWSTemplateFormatVersion:2010-09-09
+Parameters:
+  DataSourceGroupArn:
+    Type: String
+    Description: >
+      Arn del gruppo quicksight a cui si vuole dare i permessi per lavorare sul datasource
+  DataSourceType:
+    Type: String
+    MinLenght: 1
+    AllowedValues:
+      - ADOBE_ANALYTICS 
+      - AMAZON_ELASTICSEARCH 
+      - AMAZON_OPENSEARCH 
+      - ATHENA  
+      - AWS_IOT_ANALYTICS 
+      - EXASOL 
+      - GITHUB 
+      - JIRA  
+      - PRESTO 
+      - S3 
+      - SALESFORCE 
+      - SERVICENOW 
+      - SNOWFLAKE 
+      - SPARK 
+      - TIMESTREAM  
+      - TWITTER
+  SslProperties:
+    Type: String 
+    Default: false 
+    AllowedValued:
+      - true 
+      - false 
+  DataSourceField:
+    Type: String 
+    MinLenght: 1
+    Description: >
+    Specifica la posizione dei dati all'interno del datasource, ad esempio il workgroup di athena o il file s3
+  VpcConnectionArn:
+    Type: string
+    Description: >
+    Arn della connessione vpc creata su quicksight per garantire la connessione ai servizi dell'account aws
+Conditions:
+  AthenaDataSource: !Equals [!Ref DataSourceType, 'ATHENA']
+Resources:
+  DataSource:
+    Type: AWS::QuickSight::DataSource
+    Properties:
+      DataSourceId: !Join [ "-", [!Ref DataSourceType, !Ref DbName]]
+      Name: !Join [ "-", [!Ref DataSourceType, !Ref DbName]]
+      AwsAccountId: "String"
+      DataSourceParameters:
+        AthenaParameters: !If 
+          - AthenaDataSource
+          - WorkGroup: !Ref DataSourceField
+          - !Ref Aws::NoValue
+      Permissions:
+        Actions:
+          - quicksight:UpdateDataSourcePermission
+          - quicksight:DescribeDataSource
+          - quicksight:DescribeDataSourcePermission
+          - quicksight:PassDataSource
+          - quicksight:UpdateDataSource
+          - quicksight:DeleteDataSource
+          Principal: !Ref DataSourceGroupArn
+      Tags:
+        Tags
+      Type: DataSourceType
+Outputs:
+  Datasource:
+    Value: !Ref DataSource
+  DataSourceArn:
+    Value: !GetAtt DataSource.Arn

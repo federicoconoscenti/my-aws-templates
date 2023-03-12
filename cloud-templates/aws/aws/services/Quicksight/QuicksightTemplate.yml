@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion:2010-09-09
+Parameters:
+  TemplateGroupArn:
+    Type: String
+    Description: >
+      Arn del gruppo quicksight a cui si vuole dare i permessi per lavorare sul datasource
+  TemplateName:
+    Type: String
+    Default: ''
+  AnalysisSourceArn:
+    Type: String
+    Default: ''
+  TemplateSourceArn:
+    Type: String
+    Default: ''
+  DatasetArn:
+    Type: String
+  DatasetPlaceHolder:
+    Type: String
+    Default: ''
+  VersionDescription:
+    Type: String
+    Description: >
+      A description of the current template version being created. This API operation creates the first version of the template.
+      Every time UpdateTemplate is called, a new version is created.
+Conditions:
+  AnalysisAsSource: !Not [ !Equals [!Ref AnalysisSourceArn, '']]
+  TemplateAsSource: !Not [ !Equals [!Ref TemplateSourceArn, '']]
+Resources:
+    Template:
+      Type: AWS::QuickSight::Template
+      Properties:
+        AwsAccountId: "String" # Required
+        Name: !Ref TemplateName
+        Permissions:
+          - Actions:
+            - quicksight:DescribeTemplate
+            - quicksight:DescribeTemplatePermissions
+            - quicksight:UpdateTemplate
+            - quicksight:DeleteTemplate
+            - quicksight:UpdateTemplatePermissions
+            Principal: !Ref TemplateGroupArn
+        SourceEntity:
+          SourceAnalysis: !If 
+            - AnalysisAsSource
+            -
+              Arn: !Ref AnalysisSourceArn
+              DataSetReferences:
+                - DataSetArn : !Ref DataSetArn
+                - DataSetPlaceholder: !Ref DatasetPlaceHolder
+            - !Ref Aws::NoValue
+          SpurceTemplate: !If 
+            - TemplateAsSource
+            - Arn: !Ref TemplateSourceArn
+            - !Ref Aws::NoValue
+        Tags:
+          Tags
+        TemplateId: "String" # Required
+        VersionDescription: !Ref VersionDescription
+Outputs:
+  TemplateCreatedTime:
+    Value: !GetAtt Template.CretaedTime
+  TemplateLastUpdatedTime:
+    Value: !GetAtt Template.LastUpdatedTime
+  TemplateArn:
+    Value: !GetAtt Template.Arn

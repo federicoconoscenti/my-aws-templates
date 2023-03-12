@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion:2010-09-09
+Parameters:
+  DataSourceGroupArn:
+    Type: String
+    Description: >
+      Arn del gruppo quicksight a cui si vuole dare i permessi per lavorare sul datasource
+  DataSourceType:
+    Type: String
+    MinLenght: 1
+    AllowedValues:
+      - AURORA 
+      - AURORA_POSTGRESQL 
+      - MARIADB 
+      - MYSQL 
+      - ORACLE 
+      - POSTGRESQL 
+      - REDSHIFT 
+      - SQLSERVER 
+      - TERADATA 
+  SslProperties:
+    Type: String 
+    Default: false 
+    AllowedValued:
+      - true 
+      - false 
+  DbName:
+    Type: String 
+    MinLenght: 1
+  DbHost:
+    Type: String 
+    MinLenght: 1
+  DbUser:
+    Type: String 
+    MinLenght: 1
+  DbPassword:
+    NoEcho: true
+    Type: String 
+    MinLenght: 1
+  DbPort: 
+    Type: Number 
+    MinValue: 0
+    MaxValue: 65535
+  VpcConnectionArn:
+    Type: string
+    Description: >
+    Arn della connessione vpc creata su quicksight per garantire la connessione ai servizi dell'account aws
+Conditions:
+  RedshiftDataSource: !Equals [!Ref DataSourceType, 'REDSHIFT']
+  AuroraSQLDataSource: !Equals [!Ref DataSourceType, 'AURORA_POSTGRESQL']
+Resources:
+  DataSource:
+    Type: AWS::QuickSight::DataSource
+    Properties:
+      DataSourceId: !Join [ "-", [!Ref DataSourceType, !Ref DbName]]
+      Name: !Join [ "-", [!Ref DataSourceType, !Ref DbName]]
+      AwsAccountId: "String"
+      Credentials:
+        CredentialPair:
+          Password: !Ref DbPassword
+          Username: !Ref DbUser
+      DataSourceParameters:
+        RedshiftParameters: !If 
+          - RedshiftDataSource
+          - Databse: !Ref DbName
+            Host: DbHost
+            Port: DbPort
+          - !Ref Aws::NoValue
+        AuroraPostgreSqlParameters: !If 
+          - AuroraSQLDataSource
+          - Databse: !Ref DbName
+            Host: DbHost
+            Port: DbPort
+          - !Ref Aws::NoValue
+      Permissions:
+        Actions:
+          - quicksight:UpdateDataSourcePermission
+          - quicksight:DescribeDataSource
+          - quicksight:DescribeDataSourcePermission
+          - quicksight:PassDataSource
+          - quicksight:UpdateDataSource
+          - quicksight:DeleteDataSource
+          Principal: !Ref DataSourceGroupArn
+      SslProperties:
+        DisableSsl: !Ref SslProperties
+      Tags:
+        Tags
+      Type: !Ref DataSourceType
+      VpcConnectionProperties:
+        VpcConnectionArn: !Ref VpcConnectionArn
+Outputs:
+  Datasource:
+    Value: !Ref DataSource
+  DataSourceArn:
+    Value: !GetAtt DataSource.Arn
